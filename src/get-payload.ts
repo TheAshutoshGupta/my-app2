@@ -1,5 +1,6 @@
 import dotenv from "dotenv"
 import path from 'path'
+import payload from "payload"
 import type {InitOptions} from "payload/config"
 
 dotenv.config({
@@ -16,11 +17,32 @@ if(!cached){
 interface Args {
     initOptions?:Partial<InitOptions>
 }
-export const getPayLoadClient=async({initOptions}:Args = {})=>{
+export const getPayLoadClient=async({initOptions,}:Args = {})=>{
     if(!process.env.PAYLOAD_SECRET)
     {
         throw new Error("PAYLOAD_SECRET is missing")
     }
 
-    
+    if(cached.client)
+    {
+        return cached.client
+    }
+
+    if(!cached.promise)
+    {
+        cached.promise=payload.init({
+            secret:process.env.PAYLOAD_SECRET,
+            local:initOptions?.express? false:true,
+            ...cached(initOptions||{}),}
+        )
+    }
+
+    try {
+        cached.client=await cached.promise
+    } catch (e:unknown) {
+        cached.promise=null
+        throw e
+    }
+
+    return cached.client
 }
